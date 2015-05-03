@@ -1,0 +1,13 @@
+h1. ZOCP Apps
+
+This is a repository of ZOCP applications. All these applications register some input and/or output capabilities in the ZOCP realm.
+
+In every app directory you should find a README with instruction of the app's usage.
+
+h1. Requirements
+
+All apps depend on "ZOCP":http://github.com/z25/pyZOCP.
+
+h1. Licence
+
+If not stated otherwise all applications are "GPL":http://www.gnu.org/copyleft/gpl.html!
