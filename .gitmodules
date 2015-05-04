@@ -1,0 +1,3 @@
+[submodule "zosc"]
+	path = zosc
+	url = https://github.com/fieldOfView/pyZOSC.git
