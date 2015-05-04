@@ -3,12 +3,8 @@ import zmq
 import socket
 import termios, fcntl, os
 from zocp import ZOCP
-import logging
 
 if __name__ == '__main__':
-    zl = logging.getLogger("zocp")
-    zl.setLevel(logging.DEBUG)
-
     # see https://docs.python.org/2/faq/library.html#how-do-i-get-a-single-keypress-at-a-time
     fd = sys.stdin.fileno()
 
