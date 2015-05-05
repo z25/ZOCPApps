@@ -4,7 +4,6 @@ import socket
 import termios, fcntl, os
 from zocp import ZOCP
 
-
 if __name__ == '__main__':
     # see https://docs.python.org/2/faq/library.html#how-do-i-get-a-single-keypress-at-a-time
     fd = sys.stdin.fileno()
@@ -20,21 +19,23 @@ if __name__ == '__main__':
     z = ZOCP()
     hostname = socket.gethostname()
     z.set_name("keyboard@{0}".format(hostname))
-    z.register_string("Keyboard", "", 'r')
+    z.register_string("Keyboard", "", 're')
+    z.start()
+
     zpoller = zmq.Poller()
     zpoller.register(sys.stdin, zmq.POLLIN)
     zpoller.register(z.inbox, zmq.POLLIN)
     def handle_key_in():
         input = sys.stdin.read(1)
         print("KEYBOARD IN: {0}".format(input))
-        z.register_string("Keyboard", input, 'r')
+        z.emit_signal("Keyboard", input)
 
     running = True
     while running:
         try:
             items = dict(zpoller.poll())
             if z.inbox in items and items[z.inbox] == zmq.POLLIN:
-                z.run_once()
+                z.get_message()
             if sys.stdin.fileno() in items and items[sys.stdin.fileno()] == zmq.POLLIN:
                 handle_key_in()
         except (KeyboardInterrupt, SystemExit):
@@ -44,6 +45,7 @@ if __name__ == '__main__':
     zpoller.unregister(sys.stdin)
     zpoller.unregister(z.inbox)
     z.stop()
+    z = None
     termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
     fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
     print("FINISHED")
