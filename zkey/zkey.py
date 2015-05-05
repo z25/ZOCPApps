@@ -31,21 +31,20 @@ if __name__ == '__main__':
         z.emit_signal("Keyboard", input)
 
     running = True
-    while running:
-        try:
-            items = dict(zpoller.poll())
-            if z.inbox in items and items[z.inbox] == zmq.POLLIN:
-                z.get_message()
-            if sys.stdin.fileno() in items and items[sys.stdin.fileno()] == zmq.POLLIN:
-                handle_key_in()
-        except (KeyboardInterrupt, SystemExit):
-                running = False
-                break
+    try:
+        while running:
+                items = dict(zpoller.poll())
+                if z.inbox in items and items[z.inbox] == zmq.POLLIN:
+                    z.get_message()
+                if sys.stdin.fileno() in items and items[sys.stdin.fileno()] == zmq.POLLIN:
+                    handle_key_in()
+    except Exception as e:
+        running = False
+    finally:
+        termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
+        fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)    
+        zpoller.unregister(sys.stdin)
+        zpoller.unregister(z.inbox)
+        z.stop()
 
-    zpoller.unregister(sys.stdin)
-    zpoller.unregister(z.inbox)
-    z.stop()
-    z = None
-    termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
-    fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
     print("FINISHED")
