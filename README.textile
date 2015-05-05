@@ -8,6 +8,21 @@ h1. Requirements
 
 All apps depend on "ZOCP":http://github.com/z25/pyZOCP.
 
+h1. Submodules
+
+Some of the apps are included as submodules. Some extra steps are required to get these apps.
+If you download a copy of the repository as a zip, the zipfile contains a number of empty folders. You will have to download the contents of these folders seperately by visiting the original repositories.
+
+If you have not cloned the ZOCPApps repository, make sure you include the --recursive option:
+```
+git clone --recursive https://github.com/z25/ZOCPApps.git
+```
+If you have a local copy of the ZOCPApps repository, but the submodule folders are empty, use the following commands in the ZOCPApps folder to get the rest of the files:
+```
+git submodule init
+git submodule update
+```
+
 h1. Licence
 
 If not stated otherwise all applications are "GPL":http://www.gnu.org/copyleft/gpl.html!
