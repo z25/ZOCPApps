@@ -18,10 +18,8 @@ If you have not cloned the ZOCPApps repository, make sure you include the --recu
 git clone --recursive https://github.com/z25/ZOCPApps.git
 </code>
 If you have a local copy of the ZOCPApps repository, but the submodule folders are empty, use the following commands in the ZOCPApps folder to get the rest of the files:
-<code>
-<pre>git submodule init
-git submodule update</pre>
-</code>
+<pre><code>git submodule init
+git submodule update</code></pre>
 
 h1. Licence
 
