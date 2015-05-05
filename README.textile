@@ -14,14 +14,14 @@ Some of the apps are included as submodules. Some extra steps are required to ge
 If you download a copy of the repository as a zip, the zipfile contains a number of empty folders. You will have to download the contents of these folders seperately by visiting the original repositories.
 
 If you have not cloned the ZOCPApps repository, make sure you include the --recursive option:
-<pre><code>
+<code>
 git clone --recursive https://github.com/z25/ZOCPApps.git
-</code></pre>
+</code>
 If you have a local copy of the ZOCPApps repository, but the submodule folders are empty, use the following commands in the ZOCPApps folder to get the rest of the files:
-<pre><code>
-git submodule init
-git submodule update
-</code></pre>
+<code>
+<pre>git submodule init
+git submodule update</pre>
+</code>
 
 h1. Licence
 
