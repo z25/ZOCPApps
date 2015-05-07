@@ -4,3 +4,6 @@
 [submodule "zutilities"]
 	path = zutilities
 	url = https://github.com/fieldOfView/pyZUtilities.git
+[submodule "zmidi"]
+	path = zmidi
+	url = https://github.com/fieldofview/pyZMIDI.git
