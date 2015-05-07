@@ -1,0 +1,36 @@
+h1. ZOCP standard input output (stdio)
+
+This is a simple application which listens on stdin and sends anything it receives as a signal.
+
+For example to listen for new content in a file /tmp/test we can use the command 'tail' and pipe it to zstdio:
+
+<pre>
+tail -f /tmp/test | zstdio
+</pre>
+
+Anything that gets written in that file will be send out as a signal, ie.:
+
+<pre>
+echo "hello" >> /tmp/test
+</pre>
+
+Will result in a signal containing the word "hello"
+
+h1. What is stdio?
+
+See "wikipedia":http://en.wikipedia.org/wiki/Standard_streams
+
+Basically it's a standardized input output system used in POSIX compatible Operating Systems. It's very handy to chain programs together which is very simple on the command line (terminal) using the '|' (pipe) symbol, i.e.:
+
+<pre>
+$ cat README.textile | grep wikipedia
+See "wikipedia":http://en.wikipedia.org/wiki/Standard_streams
+</pre> 
+'cat' Is a very simple program that outputs any file. 'grep' Is a very simple program to look for a pattern.
+
+StdIO in shell like Bash is very powerful. Just Google for some tutorials.
+
+h1. Requirements
+
+* A Posix Operating System (Linux/OSX)
+* "ZOCP":http://guthub.com/z25/pyZOCP
