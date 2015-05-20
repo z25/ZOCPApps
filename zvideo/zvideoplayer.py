@@ -46,7 +46,7 @@ class GstZOCP(ZOCP):
         self.count = 0
         # create elements
         self.pipeline = Gst.Pipeline()
-        self.videosrc = Gst.ElementFactory.make('uridecodebin', 'videosrc0')
+        self.videosrc = Gst.ElementFactory.make('playbin', 'videosrc0')
         self.glcolorconv = Gst.ElementFactory.make("glcolorscale", "glcolorconv0")
         self.glshader = Gst.ElementFactory.make("glshader", "glshader0")
         self.glimagesink = Gst.ElementFactory.make('glimagesink', "glimagesink0")
@@ -69,7 +69,7 @@ class GstZOCP(ZOCP):
         
         # we add all elements into the pipeline
         self.pipeline.add(self.videosrc)
-        self.pipeline.add(self.sinkbin)
+        #self.pipeline.add(self.sinkbin)
         
         # we link the elements together
         self.glcolorconv.link(self.glshader)
@@ -77,8 +77,10 @@ class GstZOCP(ZOCP):
         ghostpad = Gst.GhostPad.new("sink", self.glcolorconv.get_static_pad("sink"))
         self.sinkbin.add_pad(ghostpad)
         #videosrc.link(glimagesink)
-        self.videosrc.connect("pad-added", self.on_pad_added, self.sinkbin)
+        #self.videosrc.connect("pad-added", self.on_pad_added, self.sinkbin)
         #self.videosrc.connect("drained", self.on_drained)
+        #self.videosrc.connect("about-to-finish", self.update_uri)
+        self.videosrc.set_property("video-sink",self.sinkbin)
 
         self.set_name("zvidplyr@{0}".format(socket.gethostname()))
         self.register_bool("quit", False, access='rw')
@@ -133,15 +135,15 @@ class GstZOCP(ZOCP):
         """
         pls = self.pls.split(',')
         self.count = (self.count+1)%len(pls)        
-        self.pipeline.set_state(Gst.State.PAUSED)
+        self.videosrc.set_state(Gst.State.READY)
         #self.glimagesink.set_state(Gst.State.PAUSED)
         next_vid = pls[self.count]
         print(next_vid)
         self.videosrc.set_property("uri", next_vid)
         # seek to beginning
-        self.pipeline.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, 0)
+        #self.pipeline.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, 0)
         
-        self.pipeline.set_state(Gst.State.PLAYING)
+        self.videosrc.set_state(Gst.State.PLAYING)
         #self.glimagesink.set_state(Gst.State.PLAYING)
         return True
 
