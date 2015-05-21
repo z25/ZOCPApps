@@ -32,15 +32,20 @@ from zocp import ZOCP
 import zmq
 import socket
 
+import argparse
+import sys
+import os
 
 class GstZOCP(ZOCP):
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, pls=None, *args, **kwargs):
         super(GstZOCP, self).__init__(*args, **kwargs)
         GObject.threads_init()
         self.loop = GObject.MainLoop()
         Gst.init(None)
-        pls = "file:///home/people/arnaud/Videos/tordinaire-youtubeHD.mp4" 
+        if pls == None:
+            pls = ""
+            #pls = "file:///home/people/arnaud/Videos/tordinaire-youtubeHD.mp4" 
         #pls = "file:///home/pi/test3.h264,file:///home/pi/tordinaire-youtubeHD.mp4"
         #pls = "file:///home/people/arnaud/Videos/test.h264,file:///home/people/arnaud/Videos/test2.h264"
         self.count = 0
@@ -53,7 +58,7 @@ class GstZOCP(ZOCP):
         
         # setup the pipeline
         #videosrc.set_property("video-sink", glimagesink)
-        self.playbin.set_property("uri", pls.split(',')[self.count])
+        #self.playbin.set_property("uri", pls.split(',')[self.count])
         #self.glimagesink.set_locked_state(True)
         self.sinkbin.add(self.glcolorconv)
         self.sinkbin.add(self.glshader)
@@ -86,14 +91,18 @@ class GstZOCP(ZOCP):
         self.register_vec2f('bottom_right', (1.0, -1.0), access='rw', step=[0.01, 0.01])
         self.register_vec2f('bottom_left', (-1.0, -1.0), access='rw', step=[0.01, 0.01])
         self.register_string("playlist", pls, access="rws")
-        self.register_bool("fade", False, access="rws")
+        self.register_bool("fade", False, access="rwse")
         self.register_vec3f("fade_color", (0,0,0), access="rws")
-        self.register_bool("pause", False, access="rws")
-        self.register_bool("stop", False, access="rws")
+        self.register_bool("pause", False, access="rwse")
+        self.register_bool("stop", False, access="rwse")
         
         self._fade_val = 1.0
     
     def pause_vid(self, p):
+        if self.playbin.get_state(0)[1] == Gst.State.NULL:
+            print("No URI configured")
+            return
+
         if p:
             print("pause", p)
             self.playbin.set_state(Gst.State.PAUSED)
@@ -101,11 +110,24 @@ class GstZOCP(ZOCP):
             self.playbin.set_state(Gst.State.PLAYING)
 
     def stop_vid(self, p):
+        if self.playbin.get_state(0)[1] == Gst.State.NULL:
+            print("No URI configured")
+            if not self.capability["stop"]["value"]:
+                self.capability["stop"]["value"] = True
+                self.emit_signal("stop", True)
+            return
         if p:
-            self.playbin.set_state(Gst.State.PAUSED)
-            self.playbin.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, 0)
+            if self.playbin.get_state(0)[1] == Gst.State.PLAYING:
+                self.playbin.set_state(Gst.State.PAUSED)
+                self.playbin.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, 0)
+                if not self.capability["stop"]["value"]:
+                    self.capability["stop"]["value"] = True
+                    self.emit_signal("stop", True)
         else:
             self.playbin.set_state(Gst.State.PLAYING)
+            if self.capability["stop"]["value"]:
+                self.capability["stop"]["value"] = False
+                self.emit_signal("stop", False)
      
     def fade_vid(self, f):
         if f and self._fade_val == 0.:
@@ -132,16 +154,20 @@ class GstZOCP(ZOCP):
         """
         pls = self.capability["playlist"]["value"].split(',')
         self.count = (self.count+1)%len(pls)        
-        self.playbin.set_state(Gst.State.READY)
-        #self.glimagesink.set_state(Gst.State.PAUSED)
         next_vid = pls[self.count]
-        print(next_vid)
-        self.playbin.set_property("uri", next_vid)
-        # seek to beginning
-        #self.playbin.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, 0)
-        
-        self.playbin.set_state(Gst.State.PLAYING)
-        #self.glimagesink.set_state(Gst.State.PLAYING)
+        print(next_vid, self.playbin.get_state(0)[1])
+        if next_vid:  # set next video if there is any
+            self.playbin.set_state(Gst.State.READY)
+            self.playbin.set_property("uri", next_vid)
+            # seek to beginning
+            #self.playbin.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, 0)
+            self.stop_vid(False)
+            #self.playbin.set_state(Gst.State.PLAYING)
+        else:
+            self.stop_vid(True)
+            self.playbin.set_state(Gst.State.NULL)
+            #self.capability["stop"]["value"] = True
+            #self.emit_signal("stop", True)
         return True
 
     def on_pad_added(self, element, pad, target, *args):
@@ -175,6 +201,10 @@ class GstZOCP(ZOCP):
                     self.stop_vid(v.get('value'))
                 elif k == "fade":
                     self.fade_vid(v.get('value'))
+                elif k == "playlist":
+                    # update uri
+                    if self.capability["stop"]["value"] or self.capability["pause"]["value"]:
+                        self.update_uri()
                 else:
                     print("don't know", k, v)
         
@@ -198,9 +228,9 @@ class GstZOCP(ZOCP):
         #GObject.timeout_add(2000, self.update_uri)
         self.start()
 
-        self.playbin.set_state(Gst.State.PLAYING)
-        #self.glimagesink.set_state(Gst.State.PLAYING)
-        
+        #self.playbin.set_state(Gst.State.PLAYING)
+        self.update_uri()
+
         try:
             self.loop.run()
         except Exception as e:
@@ -226,5 +256,19 @@ class GstZOCP(ZOCP):
         return True
 
 if __name__ == "__main__":
-    player = GstZOCP()
+    parser = argparse.ArgumentParser(description='Play videofiles controlled through ZOCP.')
+    parser.add_argument('files', metavar='file', type=str, nargs=argparse.REMAINDER,
+                   help='files to add to the playlist')
+    args = parser.parse_args()
+
+    pls = ""
+    for file in args.files:
+        if not os.path.isfile(file):
+            print("File {0} doesn't exist".format(file))
+            sys.exit(1)
+        pls += "file://{0},".format(os.path.abspath(file))
+
+    pls = pls[:-1]      # remove final ','
+    print(pls)
+    player = GstZOCP(pls)
     player.run()
