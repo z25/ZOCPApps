@@ -17,11 +17,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Use the following pipeline for a sender:
-# gst-launch-1.0 -v videotestsrc ! video/x-raw,frame-rate=10/1 ! x264enc speed-preset=1 tune=zero-latency byte-stream=true intra-refresh=true option-string="bframes=0:force-cfr:no-mbtree:sync-lookahead=0:sliced-threads:rc-lookahead=0" ! video/x-h264,profile=high ! rtph264pay config-interval=1 ! udpsink host=127.0.0.1 port=5000
-#
 # Debian dependencies:
 # apt-get install gstreamer1.0-plugins-bad gstreamer1.0-plugins-good gstreamer1.0-tools python3-gst-1.0 gstreamer1.0-libav gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0
+#
+# There's a bug in gstreamer-vaapi <0.5.10 see: https://bugzilla.gnome.org/show_bug.cgi?id=743035
+# workaround is export LIBVA_DRIVER_NAME=bla to make vaapi fail en revert to software decoding
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -41,8 +41,8 @@ class GstZOCP(ZOCP):
         self.loop = GObject.MainLoop()
         Gst.init(None)
         #"file:///home/people/arnaud/Videos/tordinaire-youtubeHD.mp4", 
-        self.pls = "file:///home/pi/test3.h264,file:///home/pi/tordinaire-youtubeHD.mp4"
-        #self.pls = "file:///home/people/arnaud/Videos/test.h264,file:///home/people/arnaud/Videos/test2.h264"
+        #self.pls = "file:///home/pi/test3.h264,file:///home/pi/tordinaire-youtubeHD.mp4"
+        self.pls = "file:///home/people/arnaud/Videos/test.h264,file:///home/people/arnaud/Videos/test2.h264"
         self.count = 0
         # create elements
         self.pipeline = Gst.Pipeline()
@@ -50,7 +50,7 @@ class GstZOCP(ZOCP):
         self.glcolorconv = Gst.ElementFactory.make("glcolorscale", "glcolorconv0")
         self.glshader = Gst.ElementFactory.make("glshader", "glshader0")
         self.glimagesink = Gst.ElementFactory.make('glimagesink', "glimagesink0")
-        self.sinkbin = Gst.Bin('sinkbin0')
+        self.sinkbin = Gst.Bin()
         
         # setup the pipeline
         #videosrc.set_property("video-sink", glimagesink)
@@ -69,7 +69,6 @@ class GstZOCP(ZOCP):
         
         # we add all elements into the pipeline
         self.pipeline.add(self.videosrc)
-        #self.pipeline.add(self.sinkbin)
         
         # we link the elements together
         self.glcolorconv.link(self.glshader)
