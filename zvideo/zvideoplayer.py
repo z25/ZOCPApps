@@ -40,9 +40,9 @@ class GstZOCP(ZOCP):
         GObject.threads_init()
         self.loop = GObject.MainLoop()
         Gst.init(None)
-        self.pls = "file:///home/people/arnaud/Videos/tordinaire-youtubeHD.mp4" 
-        #self.pls = "file:///home/pi/test3.h264,file:///home/pi/tordinaire-youtubeHD.mp4"
-        #self.pls = "file:///home/people/arnaud/Videos/test.h264,file:///home/people/arnaud/Videos/test2.h264"
+        pls = "file:///home/people/arnaud/Videos/tordinaire-youtubeHD.mp4" 
+        #pls = "file:///home/pi/test3.h264,file:///home/pi/tordinaire-youtubeHD.mp4"
+        #pls = "file:///home/people/arnaud/Videos/test.h264,file:///home/people/arnaud/Videos/test2.h264"
         self.count = 0
         # create elements
         self.playbin = Gst.ElementFactory.make('playbin', 'playbin0')
@@ -53,7 +53,7 @@ class GstZOCP(ZOCP):
         
         # setup the pipeline
         #videosrc.set_property("video-sink", glimagesink)
-        self.playbin.set_property("uri", self.pls.split(',')[self.count])
+        self.playbin.set_property("uri", pls.split(',')[self.count])
         #self.glimagesink.set_locked_state(True)
         self.sinkbin.add(self.glcolorconv)
         self.sinkbin.add(self.glshader)
@@ -85,7 +85,7 @@ class GstZOCP(ZOCP):
         self.register_vec2f('top_right', (1.0, 1.0), access='rw', step=[0.01, 0.01])
         self.register_vec2f('bottom_right', (1.0, -1.0), access='rw', step=[0.01, 0.01])
         self.register_vec2f('bottom_left', (-1.0, -1.0), access='rw', step=[0.01, 0.01])
-        self.register_string("playlist", self.pls, access="rws")
+        self.register_string("playlist", pls, access="rws")
         self.register_bool("fade", False, access="rws")
         self.register_vec3f("fade_color", (0,0,0), access="rws")
         self.register_bool("pause", False, access="rws")
@@ -130,7 +130,7 @@ class GstZOCP(ZOCP):
         """
         set next file from playlist
         """
-        pls = self.pls.split(',')
+        pls = self.capability["playlist"]["value"].split(',')
         self.count = (self.count+1)%len(pls)        
         self.playbin.set_state(Gst.State.READY)
         #self.glimagesink.set_state(Gst.State.PAUSED)
