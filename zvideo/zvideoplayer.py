@@ -40,13 +40,12 @@ class GstZOCP(ZOCP):
         GObject.threads_init()
         self.loop = GObject.MainLoop()
         Gst.init(None)
-        #"file:///home/people/arnaud/Videos/tordinaire-youtubeHD.mp4", 
+        self.pls = "file:///home/people/arnaud/Videos/tordinaire-youtubeHD.mp4" 
         #self.pls = "file:///home/pi/test3.h264,file:///home/pi/tordinaire-youtubeHD.mp4"
-        self.pls = "file:///home/people/arnaud/Videos/test.h264,file:///home/people/arnaud/Videos/test2.h264"
+        #self.pls = "file:///home/people/arnaud/Videos/test.h264,file:///home/people/arnaud/Videos/test2.h264"
         self.count = 0
         # create elements
-        self.pipeline = Gst.Pipeline()
-        self.videosrc = Gst.ElementFactory.make('playbin', 'videosrc0')
+        self.playbin = Gst.ElementFactory.make('playbin', 'playbin0')
         self.glcolorconv = Gst.ElementFactory.make("glcolorscale", "glcolorconv0")
         self.glshader = Gst.ElementFactory.make("glshader", "glshader0")
         self.glimagesink = Gst.ElementFactory.make('glimagesink', "glimagesink0")
@@ -54,32 +53,31 @@ class GstZOCP(ZOCP):
         
         # setup the pipeline
         #videosrc.set_property("video-sink", glimagesink)
-        self.videosrc.set_property("uri", self.pls.split(',')[self.count])
+        self.playbin.set_property("uri", self.pls.split(',')[self.count])
         #self.glimagesink.set_locked_state(True)
         self.sinkbin.add(self.glcolorconv)
         self.sinkbin.add(self.glshader)
         self.sinkbin.add(self.glimagesink)
-        self.glshader.set_property("location", "shader.glsl")
-        self.glshader.set_property("vars", "float alpha = float(1.);")
-        self.glshader.set_property("preset", "preset.glsl")
         
         # we add a message handler
-        self.bus = self.pipeline.get_bus()
+        self.bus = self.playbin.get_bus()
         self.bus.add_watch(0, self.bus_call, self.loop) # 0 == GLib.PRIORITY_DEFAULT 
-        
-        # we add all elements into the pipeline
-        self.pipeline.add(self.videosrc)
         
         # we link the elements together
         self.glcolorconv.link(self.glshader)
         self.glshader.link(self.glimagesink)
         ghostpad = Gst.GhostPad.new("sink", self.glcolorconv.get_static_pad("sink"))
         self.sinkbin.add_pad(ghostpad)
-        #videosrc.link(glimagesink)
-        #self.videosrc.connect("pad-added", self.on_pad_added, self.sinkbin)
-        #self.videosrc.connect("drained", self.on_drained)
-        #self.videosrc.connect("about-to-finish", self.update_uri)
-        self.videosrc.set_property("video-sink",self.sinkbin)
+
+        #self.playbin.connect("pad-added", self.on_pad_added, self.sinkbin)
+        #self.playbin.connect("drained", self.on_drained)
+        #self.playbin.connect("about-to-finish", self.update_uri)
+        
+        # set properties of elements
+        self.glshader.set_property("location", "shader.glsl")
+        self.glshader.set_property("vars", "float alpha = float(1.);")
+        self.glshader.set_property("preset", "preset.glsl")
+        self.playbin.set_property("video-sink",self.sinkbin)
 
         self.set_name("zvidplyr@{0}".format(socket.gethostname()))
         self.register_bool("quit", False, access='rw')
@@ -98,16 +96,16 @@ class GstZOCP(ZOCP):
     def pause_vid(self, p):
         if p:
             print("pause", p)
-            self.pipeline.set_state(Gst.State.PAUSED)
+            self.playbin.set_state(Gst.State.PAUSED)
         else:
-            self.pipeline.set_state(Gst.State.PLAYING)
+            self.playbin.set_state(Gst.State.PLAYING)
 
     def stop_vid(self, p):
         if p:
-            self.pipeline.set_state(Gst.State.PAUSED)
-            self.pipeline.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, 0)
+            self.playbin.set_state(Gst.State.PAUSED)
+            self.playbin.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, 0)
         else:
-            self.pipeline.set_state(Gst.State.PLAYING)
+            self.playbin.set_state(Gst.State.PLAYING)
      
     def fade_vid(self, f):
         if f and self._fade_val == 0.:
@@ -134,15 +132,15 @@ class GstZOCP(ZOCP):
         """
         pls = self.pls.split(',')
         self.count = (self.count+1)%len(pls)        
-        self.videosrc.set_state(Gst.State.READY)
+        self.playbin.set_state(Gst.State.READY)
         #self.glimagesink.set_state(Gst.State.PAUSED)
         next_vid = pls[self.count]
         print(next_vid)
-        self.videosrc.set_property("uri", next_vid)
+        self.playbin.set_property("uri", next_vid)
         # seek to beginning
-        #self.pipeline.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, 0)
+        #self.playbin.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, 0)
         
-        self.videosrc.set_state(Gst.State.PLAYING)
+        self.playbin.set_state(Gst.State.PLAYING)
         #self.glimagesink.set_state(Gst.State.PLAYING)
         return True
 
@@ -200,7 +198,7 @@ class GstZOCP(ZOCP):
         #GObject.timeout_add(2000, self.update_uri)
         self.start()
 
-        self.pipeline.set_state(Gst.State.PLAYING)
+        self.playbin.set_state(Gst.State.PLAYING)
         #self.glimagesink.set_state(Gst.State.PLAYING)
         
         try:
@@ -210,7 +208,7 @@ class GstZOCP(ZOCP):
         finally:
             self.stop()
         
-        self.pipeline.set_state(Gst.State.NULL)
+        self.playbin.set_state(Gst.State.NULL)
 
     def _fade(self, f):
         self.glshader.set_property("vars", "float alpha = float({0});".format(self._fade_val))
