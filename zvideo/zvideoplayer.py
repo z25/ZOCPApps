@@ -91,6 +91,7 @@ class GstZOCP(ZOCP):
         self.register_vec2f('bottom_right', (1.0, -1.0), access='rw', step=[0.01, 0.01])
         self.register_vec2f('bottom_left', (-1.0, -1.0), access='rw', step=[0.01, 0.01])
         self.register_string("playlist", pls, access="rws")
+        self.register_bool("loop", True, access="rwse")
         self.register_bool("fade", False, access="rwse")
         self.register_vec3f("fade_color", (0,0,0), access="rws")
         self.register_bool("pause", False, access="rwse")
@@ -135,12 +136,22 @@ class GstZOCP(ZOCP):
         elif self._fade_val == 1.0:
             GObject.timeout_add(10, self._fade, f)        
 
+    def loop_vid(self, *args):
+        print("LOOP")
+        # https://lazka.github.io/pgi-docs/#Gst-1.0/flags.html#Gst.SeekFlags
+        flags = Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT | Gst.SeekFlags.SEGMENT 
+        self.playbin.seek(1.0, Gst.Format.TIME, flags, Gst.SeekType.SET, 0, Gst.SeekType.SET, -1)
+
     def bus_call(self, bus, msg, *args):
         """
         handling messages on the gstreamer bus
         """
-        if msg.type == Gst.MessageType.EOS:
-            self.update_uri()           # get next file from playlist
+        if msg.type == Gst.MessageType.SEGMENT_DONE or msg.type == Gst.MessageType.EOS:
+            print("SEG DONE")
+            if not self.capability["loop"]["value"]:
+                self.update_uri()           # get next file from playlist
+            else:
+                self.loop_vid()
             return True
         elif msg.type == Gst.MessageType.ERROR:
             print(msg.parse_error())
