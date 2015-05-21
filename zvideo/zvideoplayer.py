@@ -93,7 +93,7 @@ class GstZOCP(ZOCP):
         self.register_string("playlist", pls, access="rws")
         self.register_bool("loop", True, access="rwse")
         self.register_bool("fade", False, access="rwse")
-        self.register_vec3f("fade_color", (0,0,0), access="rws")
+        self.register_vec3f("fade_color", (1,0,0), access="rws")
         self.register_bool("pause", False, access="rwse")
         self.register_bool("stop", False, access="rwse")
         
@@ -139,7 +139,7 @@ class GstZOCP(ZOCP):
     def loop_vid(self, *args):
         print("LOOP")
         # https://lazka.github.io/pgi-docs/#Gst-1.0/flags.html#Gst.SeekFlags
-        flags = Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT | Gst.SeekFlags.SEGMENT 
+        flags = Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT | Gst.SeekFlags.SEGMENT
         self.playbin.seek(1.0, Gst.Format.TIME, flags, Gst.SeekType.SET, 0, Gst.SeekType.SET, -1)
 
     def bus_call(self, bus, msg, *args):
@@ -252,18 +252,21 @@ class GstZOCP(ZOCP):
         self.playbin.set_state(Gst.State.NULL)
 
     def _fade(self, f):
-        self.glshader.set_property("vars", "float alpha = float({0});".format(self._fade_val))
+        color = self.capability["fade_color"]["value"]
+        self.glshader.set_property("vars", "float alpha = float({0}); vec3 color = vec3({1},{2},{3});".
+            format(self._fade_val, color[0], color[1], color[2]))
         if f:
             self._fade_val += 0.01
             if self._fade_val >= 1.0:
                 self._fade_val = 1.0
+                print("FADED IN")
                 return False
         else:
             self._fade_val -= 0.01
             if self._fade_val <= .0:
                 self._fade_val = .0
+                print("FADED OUT")
                 return False
-        print(self._fade_val)
         return True
 
 if __name__ == "__main__":
