@@ -139,7 +139,7 @@ class GstZOCP(ZOCP):
     def loop_vid(self, *args):
         print("LOOP")
         # https://lazka.github.io/pgi-docs/#Gst-1.0/flags.html#Gst.SeekFlags
-        flags = Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT | Gst.SeekFlags.SEGMENT
+        flags = Gst.SeekFlags.FLUSH | Gst.SeekFlags.SEGMENT
         self.playbin.seek(1.0, Gst.Format.TIME, flags, Gst.SeekType.SET, 0, Gst.SeekType.SET, -1)
 
     def bus_call(self, bus, msg, *args):
