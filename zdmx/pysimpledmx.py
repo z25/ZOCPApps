@@ -58,8 +58,11 @@ class DMXConnection(object):
         if (chan > 512) or (chan < 1):
             print("invalid channel")
             return
-        if val > 255: val=255
-        if val < 0: val=0
+        if val > 255: 
+            val=255
+        if val < 0: 
+            val=0
+        
         self.dmx_frame[chan] = val
         if autorender:
             self.render()
@@ -88,30 +91,9 @@ class DMXConnection(object):
             packetNew.append(self.dmx_frame[j])
         packetNew.append(END_VAL)
 
-
-        '''
-        packet = []
-        packet.append(chr(START_VAL))
-        packet.append(chr(LABELS['TX_DMX_PACKET']))
-        packet.append(chr(len(self.dmx_frame) & 0xFF))
-        packet.append(chr((len(self.dmx_frame) >> 8) & 0xFF))
-
-        #message = chr(START_VAL) + chr(LABELS['TX_DMX_PACKET']) + chr(len(self.dmx_frame) & 0xFF) + chr((len(self.dmx_frame) >> 8) & 0xFF)
-        
-        for j in range(len(self.dmx_frame)):
-            packet.append(chr(self.dmx_frame[j]))
-            
-        packet.append(chr(END_VAL))
-        '''
-        
-        #print(''.join(packet))
-        #print(str(''.join(packetNew)))
-
         self.com.write(packetNew) 
-        #self.com.write(str(''.join(packet))) 
-        #self.com.write(bytes(''.join(packet),'UTF-8')) 
-
-        print("--------> written to port: <-----------------")
+       
+        #print("--------> written to port: <-----------------")
         #print(bytes(''.join(packet),'UTF-8'))
         
 
