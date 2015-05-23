@@ -105,7 +105,7 @@ class DMXConnection(object):
         '''
         
         #print(''.join(packet))
-        #print(str(''.join(packet)))
+        #print(str(''.join(packetNew)))
 
         self.com.write(packetNew) 
         #self.com.write(str(''.join(packet))) 
