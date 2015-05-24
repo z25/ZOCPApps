@@ -151,12 +151,12 @@ class GstZOCP(ZOCP):
             self.playbin.set_state(Gst.State.PLAYING)
 
     def stop_vid(self, p):
-        if self.playbin.get_state(0)[1] == Gst.State.NULL:
-            print("No URI configured")
-            if not self.capability["stop"]["value"]:
-                self.capability["stop"]["value"] = True
-                self.emit_signal("stop", True)
-            return
+        #if self.playbin.get_state(0)[1] == Gst.State.NULL:
+        #    print("No URI configured")
+        #    if not self.capability["stop"]["value"]:
+        #        self.capability["stop"]["value"] = True
+        #        self.emit_signal("stop", True)
+        #    return
         if p:
             if self.playbin.get_state(0)[1] == Gst.State.PLAYING:
                 self.playbin.set_state(Gst.State.PAUSED)
@@ -189,7 +189,10 @@ class GstZOCP(ZOCP):
         if msg.type == Gst.MessageType.SEGMENT_DONE or msg.type == Gst.MessageType.EOS:
             print("SEG DONE")
             if not self.capability["loop"]["value"]:
-                self.update_uri()           # get next file from playlist
+                if self.capability["auto_next"]["value"]:
+                    self.update_uri()           # get next file from playlist
+                else:
+                    self.stop_vid(True)       
             else:
                 self.loop_vid()
             return True
@@ -213,7 +216,7 @@ class GstZOCP(ZOCP):
         self.count = (self.count+1)%len(pls)
         next_vid = pls[self.count]
         print(next_vid, self.playbin.get_state(0)[1])
-        if next_vid and self.capability["auto_next"]["value"]:  # set next video if there is any
+        if next_vid:  # set next video if there is any
             self.playbin.set_state(Gst.State.READY)
             self.playbin.set_property("uri", next_vid)
             # seek to beginning
