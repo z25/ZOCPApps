@@ -28,6 +28,8 @@ gi.require_version('Gst', '1.0')
 from gi.repository import GObject, Gst
 print(Gst.version())
 
+from OpenGL.GLES2 import *
+
 from zocp import ZOCP
 import zmq
 import socket
@@ -51,7 +53,7 @@ class GstZOCP(ZOCP):
         self.count = 0
         # create elements
         self.playbin = Gst.ElementFactory.make('playbin', 'playbin0')
-        self.glcolorconv = Gst.ElementFactory.make("glcolorscale", "glcolorconv0")
+        #self.glcolorconv = Gst.ElementFactory.make("glcolorscale", "glcolorconv0")
         self.glshader = Gst.ElementFactory.make("glshader", "glshader0")
         self.glimagesink = Gst.ElementFactory.make('glimagesink', "glimagesink0")
         self.sinkbin = Gst.Bin()
@@ -60,7 +62,7 @@ class GstZOCP(ZOCP):
         #videosrc.set_property("video-sink", glimagesink)
         #self.playbin.set_property("uri", pls.split(',')[self.count])
         #self.glimagesink.set_locked_state(True)
-        self.sinkbin.add(self.glcolorconv)
+        #self.sinkbin.add(self.glcolorconv)
         self.sinkbin.add(self.glshader)
         self.sinkbin.add(self.glimagesink)
         
@@ -69,15 +71,16 @@ class GstZOCP(ZOCP):
         self.bus.add_watch(0, self.bus_call, self.loop) # 0 == GLib.PRIORITY_DEFAULT 
         
         # we link the elements together
-        self.glcolorconv.link(self.glshader)
+        #self.glcolorconv.link(self.glshader)
         self.glshader.link(self.glimagesink)
-        ghostpad = Gst.GhostPad.new("sink", self.glcolorconv.get_static_pad("sink"))
+        ghostpad = Gst.GhostPad.new("sink", self.glshader.get_static_pad("sink"))
         self.sinkbin.add_pad(ghostpad)
 
         #self.playbin.connect("pad-added", self.on_pad_added, self.sinkbin)
         #self.playbin.connect("drained", self.on_drained)
         #self.playbin.connect("about-to-finish", self.update_uri)
-        
+        self.glimagesink.connect("client-reshape", self._reshape_cb)
+
         # set properties of elements
         self.glshader.set_property("location", "shader.glsl")
         self.glshader.set_property("vars", "float alpha = float(1.);")
@@ -267,6 +270,15 @@ class GstZOCP(ZOCP):
                 self._fade_val = .0
                 print("FADED OUT")
                 return False
+        return True
+
+    def _reshape_cb(self, glsink, width, height):
+        print("reshape", width, height, glsink)
+        try:
+            glViewport(0, 0, 1920, 1080)
+        except Exception as e:
+            print(e)
+            return False
         return True
 
 if __name__ == "__main__":
