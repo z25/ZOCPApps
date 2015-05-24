@@ -124,13 +124,15 @@ class GstZOCP(ZOCP):
 
         self.set_name("zvidplyr@{0}".format(socket.gethostname()))
         self.register_bool("quit", False, access='rw')
-        self.register_vec2f("top_left", (-1.0, 1.0), access='rw', step=[0.01, 0.01])
-        self.register_vec2f('top_right', (1.0, 1.0), access='rw', step=[0.01, 0.01])
-        self.register_vec2f('bottom_right', (1.0, -1.0), access='rw', step=[0.01, 0.01])
-        self.register_vec2f('bottom_left', (-1.0, -1.0), access='rw', step=[0.01, 0.01])
+        #self.register_vec2f("top_left", (-1.0, 1.0), access='rw', step=[0.01, 0.01])
+        #self.register_vec2f('top_right', (1.0, 1.0), access='rw', step=[0.01, 0.01])
+        #self.register_vec2f('bottom_right', (1.0, -1.0), access='rw', step=[0.01, 0.01])
+        #self.register_vec2f('bottom_left', (-1.0, -1.0), access='rw', step=[0.01, 0.01])
         self.register_string("playlist", pls, access="rws")
         self.register_bool("loop", True, access="rwse")
         self.register_bool("fade", False, access="rwse")
+        self.register_bool("next", False, access="rwse")
+        self.register_bool("auto_next", True, access="rwse")
         self.register_vec3f("fade_color", (1,0,0), access="rws")
         self.register_bool("pause", False, access="rwse")
         self.register_bool("stop", False, access="rwse")
@@ -208,10 +210,10 @@ class GstZOCP(ZOCP):
         set next file from playlist
         """
         pls = self.capability["playlist"]["value"].split(',')
-        self.count = (self.count+1)%len(pls)        
+        self.count = (self.count+1)%len(pls)
         next_vid = pls[self.count]
         print(next_vid, self.playbin.get_state(0)[1])
-        if next_vid:  # set next video if there is any
+        if next_vid and self.capability["auto_next"]["value"]:  # set next video if there is any
             self.playbin.set_state(Gst.State.READY)
             self.playbin.set_property("uri", next_vid)
             # seek to beginning
@@ -252,6 +254,11 @@ class GstZOCP(ZOCP):
                 if k == "pause":
                     print(k,v.get('value'))
                     self.pause_vid(v.get('value'))
+                elif k == "stop":
+                    self.stop_vid(v.get('value'))
+                elif k == "next":
+                    self.update_uri()
+                    self.capability['next']['value'] = False
                 elif k == "stop":
                     self.stop_vid(v.get('value'))
                 elif k == "fade":
