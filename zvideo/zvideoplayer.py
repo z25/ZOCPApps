@@ -36,6 +36,38 @@ import argparse
 import sys
 import os
 
+import platform
+import re
+
+# https://raw.githubusercontent.com/adafruit/Adafruit_Python_GPIO/master/Adafruit_GPIO/Platform.py
+def pi_version():
+    """Detect the version of the Raspberry Pi.  Returns either 1, 2 or
+    None depending on if it's a Raspberry Pi 1 (model A, B, A+, B+),
+    Raspberry Pi 2 (model B+), or not a Raspberry Pi.
+    """
+    # Check /proc/cpuinfo for the Hardware field value.
+    # 2708 is pi 1
+    # 2709 is pi 2
+    # Anything else is not a pi.
+    with open('/proc/cpuinfo', 'r') as infile:
+        cpuinfo = infile.read()
+    # Match a line like 'Hardware   : BCM2709'
+    match = re.search('^Hardware\s+:\s+(\w+)$', cpuinfo,
+                      flags=re.MULTILINE | re.IGNORECASE)
+    if not match:
+        # Couldn't find the hardware, assume it isn't a pi.
+        return None
+    if match.group(1) == 'BCM2708':
+        # Pi 1
+        return 1
+    elif match.group(1) == 'BCM2709':
+        # Pi 2
+        return 2
+    else:
+        # Something else, not a pi.
+        return None
+
+
 class GstZOCP(ZOCP):
     
     def __init__(self, pls=None, *args, **kwargs):
@@ -50,12 +82,13 @@ class GstZOCP(ZOCP):
         #pls = "file:///home/people/arnaud/Videos/test.h264,file:///home/people/arnaud/Videos/test2.h264"
         self.count = 0
         # create elements
+        self._prerolled = False
         self.playbin = Gst.ElementFactory.make('playbin', 'playbin0')
         self.glcolorconv = Gst.ElementFactory.make("glcolorscale", "glcolorconv0")
         self.glshader = Gst.ElementFactory.make("glshader", "glshader0")
         self.glimagesink = Gst.ElementFactory.make('glimagesink', "glimagesink0")
         self.sinkbin = Gst.Bin()
-        
+
         # setup the pipeline
         #videosrc.set_property("video-sink", glimagesink)
         #self.playbin.set_property("uri", pls.split(',')[self.count])
@@ -69,6 +102,7 @@ class GstZOCP(ZOCP):
         self.bus.add_watch(0, self.bus_call, self.loop) # 0 == GLib.PRIORITY_DEFAULT 
         
         # we link the elements together
+        self.glshader.link(self.glimagesink)
         self.glcolorconv.link(self.glshader)
         self.glshader.link(self.glimagesink)
         ghostpad = Gst.GhostPad.new("sink", self.glcolorconv.get_static_pad("sink"))
@@ -83,16 +117,22 @@ class GstZOCP(ZOCP):
         self.glshader.set_property("vars", "float alpha = float(1.);")
         self.glshader.set_property("preset", "preset.glsl")
         self.playbin.set_property("video-sink",self.sinkbin)
+        if pi_version():
+            # force rpi analog audio output
+            self.audiosink = Gst.ElementFactory.make('omxanalogaudiosink', "omxanalogaudiosink0")        
+            self.playbin.set_property("audio-sink",self.audiosink)
 
         self.set_name("zvidplyr@{0}".format(socket.gethostname()))
         self.register_bool("quit", False, access='rw')
-        self.register_vec2f("top_left", (-1.0, 1.0), access='rw', step=[0.01, 0.01])
-        self.register_vec2f('top_right', (1.0, 1.0), access='rw', step=[0.01, 0.01])
-        self.register_vec2f('bottom_right', (1.0, -1.0), access='rw', step=[0.01, 0.01])
-        self.register_vec2f('bottom_left', (-1.0, -1.0), access='rw', step=[0.01, 0.01])
+        #self.register_vec2f("top_left", (-1.0, 1.0), access='rw', step=[0.01, 0.01])
+        #self.register_vec2f('top_right', (1.0, 1.0), access='rw', step=[0.01, 0.01])
+        #self.register_vec2f('bottom_right', (1.0, -1.0), access='rw', step=[0.01, 0.01])
+        #self.register_vec2f('bottom_left', (-1.0, -1.0), access='rw', step=[0.01, 0.01])
         self.register_string("playlist", pls, access="rws")
         self.register_bool("loop", True, access="rwse")
         self.register_bool("fade", False, access="rwse")
+        self.register_bool("next", False, access="rwse")
+        self.register_bool("auto_next", True, access="rwse")
         self.register_vec3f("fade_color", (1,0,0), access="rws")
         self.register_bool("pause", False, access="rwse")
         self.register_bool("stop", False, access="rwse")
@@ -111,12 +151,12 @@ class GstZOCP(ZOCP):
             self.playbin.set_state(Gst.State.PLAYING)
 
     def stop_vid(self, p):
-        if self.playbin.get_state(0)[1] == Gst.State.NULL:
-            print("No URI configured")
-            if not self.capability["stop"]["value"]:
-                self.capability["stop"]["value"] = True
-                self.emit_signal("stop", True)
-            return
+        #if self.playbin.get_state(0)[1] == Gst.State.NULL:
+        #    print("No URI configured")
+        #    if not self.capability["stop"]["value"]:
+        #        self.capability["stop"]["value"] = True
+        #        self.emit_signal("stop", True)
+        #    return
         if p:
             if self.playbin.get_state(0)[1] == Gst.State.PLAYING:
                 self.playbin.set_state(Gst.State.PAUSED)
@@ -139,8 +179,8 @@ class GstZOCP(ZOCP):
     def loop_vid(self, *args):
         print("LOOP")
         # https://lazka.github.io/pgi-docs/#Gst-1.0/flags.html#Gst.SeekFlags
-        flags = Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT | Gst.SeekFlags.SEGMENT
-        self.playbin.seek(1.0, Gst.Format.TIME, flags, Gst.SeekType.SET, 0, Gst.SeekType.SET, -1)
+        flags = Gst.SeekFlags.SEGMENT | Gst.SeekFlags.FLUSH
+        self.playbin.seek_simple (Gst.Format.TIME, flags, 0);
 
     def bus_call(self, bus, msg, *args):
         """
@@ -149,10 +189,19 @@ class GstZOCP(ZOCP):
         if msg.type == Gst.MessageType.SEGMENT_DONE or msg.type == Gst.MessageType.EOS:
             print("SEG DONE")
             if not self.capability["loop"]["value"]:
-                self.update_uri()           # get next file from playlist
+                if self.capability["auto_next"]["value"]:
+                    self.update_uri()           # get next file from playlist
+                else:
+                    self.stop_vid(True)       
             else:
                 self.loop_vid()
             return True
+        elif msg.type == Gst.MessageType.ASYNC_DONE:
+            if not self._prerolled:
+                print("Initial seek ...");
+                flags = Gst.SeekFlags.FLUSH | Gst.SeekFlags.SEGMENT
+                self.playbin.seek_simple (Gst.Format.TIME, flags, 0);
+                self._prerolled = True
         elif msg.type == Gst.MessageType.ERROR:
             print(msg.parse_error())
             self.loop.quit()            # quit.... (better restart app?)
@@ -164,7 +213,7 @@ class GstZOCP(ZOCP):
         set next file from playlist
         """
         pls = self.capability["playlist"]["value"].split(',')
-        self.count = (self.count+1)%len(pls)        
+        self.count = (self.count+1)%len(pls)
         next_vid = pls[self.count]
         print(next_vid, self.playbin.get_state(0)[1])
         if next_vid:  # set next video if there is any
@@ -208,6 +257,11 @@ class GstZOCP(ZOCP):
                 if k == "pause":
                     print(k,v.get('value'))
                     self.pause_vid(v.get('value'))
+                elif k == "stop":
+                    self.stop_vid(v.get('value'))
+                elif k == "next":
+                    self.update_uri()
+                    self.capability['next']['value'] = False
                 elif k == "stop":
                     self.stop_vid(v.get('value'))
                 elif k == "fade":
