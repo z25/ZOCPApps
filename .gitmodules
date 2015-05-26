@@ -7,3 +7,6 @@
 [submodule "zmidi"]
 	path = zmidi
 	url = https://github.com/fieldofview/pyZMIDI.git
+[submodule "zshadertoy"]
+	path = zshadertoy
+	url = https://github.com/fieldOfView/pyZShaderToy.git
