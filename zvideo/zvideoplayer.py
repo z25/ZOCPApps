@@ -28,6 +28,8 @@ gi.require_version('Gst', '1.0')
 from gi.repository import GObject, Gst
 print(Gst.version())
 
+from OpenGL.GLES2 import *
+
 from zocp import ZOCP
 import zmq
 import socket
@@ -71,7 +73,7 @@ def pi_version():
 class GstZOCP(ZOCP):
     
     def __init__(self, pls=None, *args, **kwargs):
-        super(GstZOCP, self).__init__(*args, **kwargs)
+        super(GstZOCP, self).__init__("zvidplyr@{0}".format(socket.gethostname()), *args, **kwargs)
         GObject.threads_init()
         self.loop = GObject.MainLoop()
         Gst.init(None)
@@ -111,7 +113,8 @@ class GstZOCP(ZOCP):
         #self.playbin.connect("pad-added", self.on_pad_added, self.sinkbin)
         #self.playbin.connect("drained", self.on_drained)
         #self.playbin.connect("about-to-finish", self.update_uri)
-        
+        self.glimagesink.connect("client-reshape", self._reshape_cb)
+
         # set properties of elements
         self.glshader.set_property("location", "shader.glsl")
         self.glshader.set_property("vars", "float alpha = float(1.);")
@@ -122,7 +125,6 @@ class GstZOCP(ZOCP):
             self.audiosink = Gst.ElementFactory.make('omxanalogaudiosink', "omxanalogaudiosink0")        
             self.playbin.set_property("audio-sink",self.audiosink)
 
-        self.set_name("zvidplyr@{0}".format(socket.gethostname()))
         self.register_bool("quit", False, access='rw')
         #self.register_vec2f("top_left", (-1.0, 1.0), access='rw', step=[0.01, 0.01])
         #self.register_vec2f('top_right', (1.0, 1.0), access='rw', step=[0.01, 0.01])
@@ -312,6 +314,15 @@ class GstZOCP(ZOCP):
                 self._fade_val = .0
                 print("FADED OUT")
                 return False
+        return True
+
+    def _reshape_cb(self, glsink, width, height):
+        print("reshape", width, height, glsink)
+        try:
+            glViewport(0, 0, 1920, 1080)
+        except Exception as e:
+            print(e)
+            return False
         return True
 
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ class DMXnode(ZOCP):
     # Constructor
     def __init__(self, nodename=""):
         self.nodename = nodename
-        super(DMXnode, self).__init__()
+        super(DMXnode, self).__init__(self.nodename)
 
         # INIT DMX
         #mydmx = pysimpledmx.DMXConnection("/dev/ttyUSB0")
@@ -42,7 +42,6 @@ class DMXnode(ZOCP):
         pprint(self.lamps)
         
         # ZOCP STUFF
-        self.set_name(self.nodename)
         # Register everything ..
         print("###########")
         for name,data in self.lamps.items():

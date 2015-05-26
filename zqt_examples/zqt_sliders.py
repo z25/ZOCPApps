@@ -25,8 +25,7 @@ class QTZOCPNode(QtGui.QWidget):
         self.initUI()
  
     def init_zocp(self):
-        self.z = ZOCP()
-        self.z.set_name(self.nodename)
+        self.z = ZOCP(self.nodename)
         
         self.notifier = QtCore.QSocketNotifier(
                 self.z.inbox.getsockopt(zmq.FD), 

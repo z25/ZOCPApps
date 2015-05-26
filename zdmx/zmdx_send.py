@@ -14,6 +14,8 @@ class DMXnode(ZOCP):
 
     dmx_recieve_node_id = None
 
+    def __init__(self, *args, **kwargs):
+        super(DMXNode, self).__init__(*args, **kwargs)
 
     def send_dmx_channel(self, channel, value):
         
@@ -83,8 +85,7 @@ if __name__ == '__main__':
         third argument: value
     '''
 
-    z = DMXnode()
-    z.set_node_name("ZOCP-DMX-send")
+    z = DMXnode("ZOCP-DMX-send")
 
     numArgs = len(sys.argv)
 

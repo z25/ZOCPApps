@@ -27,9 +27,8 @@ import fcntl, os
 from zocp import ZOCP
 
 if __name__ == '__main__':
-    z = ZOCP()
     hostname = socket.gethostname()
-    z.set_name("zstdio@{0}".format(hostname))
+    z = ZOCP("zstdio@{0}".format(hostname))
     z.register_string("stdin", "", 're')
     z.start()
 

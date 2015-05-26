@@ -25,6 +25,9 @@ def clamp(n, minn, maxn):
 
 class DMXnode(ZOCP):
 
+    def __init__(self, *args, **kwargs):
+        super(DMXNode, self).__init__(*args, **kwargs)
+
     # INIT DMX
     mydmx = pysimpledmx.DMXConnection("/dev/ttyUSB0")
     #mydmx = pysimpledmx.DMXConnection("/dev/tty.usbserial-EN134003")
@@ -84,8 +87,7 @@ if __name__ == '__main__':
     zl = logging.getLogger("zocp")
     zl.setLevel(logging.DEBUG)
 
-    z = DMXnode()
-    z.set_name("ZOCP-DMX-Recieve")
+    z = DMXnode("ZOCP-DMX-Recieve")
     z.register_int('DMXuniverse', 1, access='srw', min=0, max=10, step=1)
     z.register_int('DMXchannel', 10, access='srw', min=0, max=511, step=1)
     z.register_float('DMXvalue', 0.4, access='srw', min=0, max=1, step=0.1)

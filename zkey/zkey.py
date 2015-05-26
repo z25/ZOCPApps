@@ -16,9 +16,8 @@ if __name__ == '__main__':
     oldflags = fcntl.fcntl(fd, fcntl.F_GETFL)
     fcntl.fcntl(fd, fcntl.F_SETFL, oldflags | os.O_NONBLOCK)
 
-    z = ZOCP()
     hostname = socket.gethostname()
-    z.set_name("keyboard@{0}".format(hostname))
+    z = ZOCP("keyboard@{0}".format(hostname))
     z.register_string("Keyboard", "", 're')
     z.start()
 

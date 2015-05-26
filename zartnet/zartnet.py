@@ -49,8 +49,7 @@ class Artnetnode(ZOCP):
 
 if __name__ == '__main__':
     #z = ZOCP()
-    z = Artnetnode()
-    z.set_node_name("ZOCP-Artnet-Receive")
+    z = Artnetnode("ZOCP-Artnet-Receive")
     z.register_int('DMXchannel', 10, access='rw', min=0, max=999, step=1)
     z.register_int('DMXvalue', 10, access='rw', min=0, max=255, step=1)
     
