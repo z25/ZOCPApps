@@ -99,9 +99,9 @@ class QTZOCPnumber(QtGui.QWidget):
         # the destination trying to connect to it is.
         sourceTargetName = "QT Sliders@%s" % socket.gethostname()
         if(name == sourceTargetName):
-            self.z.signal_subscribe(self.z.get_uuid(), 'display1', peer, 'slider1')
-            self.z.signal_subscribe(self.z.get_uuid(), 'display2', peer, 'slider2')
-            self.z.signal_subscribe(self.z.get_uuid(), 'display3', peer, 'slider3')
+            self.z.signal_subscribe(self.z.uuid(), 'display1', peer, 'slider1')
+            self.z.signal_subscribe(self.z.uuid(), 'display2', peer, 'slider2')
+            self.z.signal_subscribe(self.z.uuid(), 'display3', peer, 'slider3')
             zl.debug("Nodes are subscribed")
 
 
