@@ -129,13 +129,13 @@ class GstZOCP(ZOCP):
         #self.register_vec2f('bottom_right', (1.0, -1.0), access='rw', step=[0.01, 0.01])
         #self.register_vec2f('bottom_left', (-1.0, -1.0), access='rw', step=[0.01, 0.01])
         self.register_string("playlist", pls, access="rws")
-        self.register_bool("loop", True, access="rwse")
-        self.register_bool("fade", False, access="rwse")
-        self.register_bool("next", False, access="rwse")
-        self.register_bool("auto_next", True, access="rwse")
+        self.register_bool("loop", True, access="rws")
+        self.register_bool("fade", True, access="rws")
+        self.register_bool("next", False, access="rws")
+        self.register_bool("auto_next", True, access="rws")
         self.register_vec3f("fade_color", (1,0,0), access="rws")
-        self.register_bool("pause", False, access="rwse")
-        self.register_bool("stop", False, access="rwse")
+        self.register_bool("pause", False, access="rws")
+        self.register_bool("stop", False, access="rws")
         
         self._fade_val = 1.0
     
@@ -153,22 +153,13 @@ class GstZOCP(ZOCP):
     def stop_vid(self, p):
         #if self.playbin.get_state(0)[1] == Gst.State.NULL:
         #    print("No URI configured")
-        #    if not self.capability["stop"]["value"]:
-        #        self.capability["stop"]["value"] = True
-        #        self.emit_signal("stop", True)
         #    return
         if p:
             if self.playbin.get_state(0)[1] == Gst.State.PLAYING:
                 self.playbin.set_state(Gst.State.PAUSED)
                 self.playbin.seek_simple(Gst.Format.TIME, Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT, 0)
-                if not self.capability["stop"]["value"]:
-                    self.capability["stop"]["value"] = True
-                    self.emit_signal("stop", True)
         else:
             self.playbin.set_state(Gst.State.PLAYING)
-            if self.capability["stop"]["value"]:
-                self.capability["stop"]["value"] = False
-                self.emit_signal("stop", False)
      
     def fade_vid(self, f):
         if f and self._fade_val == 0.:
@@ -226,8 +217,6 @@ class GstZOCP(ZOCP):
         else:
             self.stop_vid(True)
             self.playbin.set_state(Gst.State.NULL)
-            #self.capability["stop"]["value"] = True
-            #self.emit_signal("stop", True)
         return True
 
     def on_pad_added(self, element, pad, target, *args):
@@ -244,45 +233,47 @@ class GstZOCP(ZOCP):
             self.loop.quit()
         return True
 
+
     def on_modified(self, peer, name, data, *args, **kwargs):
-        """
-        Called when some data is modified on this node.
-        peer: id of peer that made the change
-        name: name of peer that made the change
-        data: changed data, formatted as a partial capability dictionary, containing
-              only the changed part(s) of the capability tree of the node
-        """
+        # capability modified by SET, check if the value changed
+        if self._running and peer:
+            for key in data:
+                if 'value' in data[key]:
+                    self.receive_value(key)
+
+
+    def on_peer_signaled(self, peer, name, data, *args, **kwargs):
+        # receive a value from a signal
+        if self._running and peer:
+            for sensor in data[2]:
+                if(sensor):
+                    self.receive_value(sensor)
+
+
+    def receive_value(self, key):
+        # value changed by either SET or SIG
+        new_value = self.capability[key]['value']
+
         if self._running:
-            for k,v in data.items():
-                if k == "pause":
-                    print(k,v.get('value'))
-                    self.pause_vid(v.get('value'))
-                elif k == "stop":
-                    self.stop_vid(v.get('value'))
-                elif k == "next":
+            if key == "pause":
+                self.pause_vid(new_value)
+            elif key == "stop":
+                self.stop_vid(new_value)
+            elif key == "next":
+                if new_value:
                     self.update_uri()
-                    self.capability['next']['value'] = False
-                elif k == "stop":
-                    self.stop_vid(v.get('value'))
-                elif k == "fade":
-                    self.fade_vid(v.get('value'))
-                elif k == "playlist":
-                    # update uri
-                    if self.capability["stop"]["value"] or self.capability["pause"]["value"]:
-                        self.update_uri()
-                else:
-                    print("don't know", k, v)
+            elif key == "fade":
+                self.fade_vid(new_value)
+            elif key == "fade_color":
+                pass
+            elif key == "playlist":
+                # update uri
+                if self.capability["stop"]["value"] or self.capability["pause"]["value"]:
+                    self.update_uri()
+            else:
+                print("don't know", key, new_value)
+
         
-    def emit_signal(self, emitter, data):
-        super(GstZOCP, self).emit_signal(emitter, data)
-        print("EMIT SIG:", emitter)
-        if emitter == "pause":
-            self.pause_vid(data)
-        elif emitter == "stop":
-            self.stop_vid(data)
-        elif emitter == "fade":
-            self.fade_vid(data)
-    
     def run(self):
         # listen to the zocp inbox socket
         GObject.io_add_watch(
