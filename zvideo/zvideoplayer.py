@@ -41,7 +41,7 @@ import os
 class GstZOCP(ZOCP):
     
     def __init__(self, pls=None, *args, **kwargs):
-        super(GstZOCP, self).__init__(*args, **kwargs)
+        super(GstZOCP, self).__init__("zvidplyr@{0}".format(socket.gethostname()), *args, **kwargs)
         GObject.threads_init()
         self.loop = GObject.MainLoop()
         Gst.init(None)
@@ -87,7 +87,6 @@ class GstZOCP(ZOCP):
         self.glshader.set_property("preset", "preset.glsl")
         self.playbin.set_property("video-sink",self.sinkbin)
 
-        self.set_name("zvidplyr@{0}".format(socket.gethostname()))
         self.register_bool("quit", False, access='rw')
         self.register_vec2f("top_left", (-1.0, 1.0), access='rw', step=[0.01, 0.01])
         self.register_vec2f('top_right', (1.0, 1.0), access='rw', step=[0.01, 0.01])

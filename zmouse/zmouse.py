@@ -11,9 +11,8 @@ if __name__ == '__main__':
     fd = open('/dev/input/mouse0','rb')
     fn = fd.fileno()
 
-    z = ZOCP()
     hostname = socket.gethostname()
-    z.set_name("mouse@{0}".format(hostname))
+    z = ZOCP("mouse@{0}".format(hostname))
     z.start()
 
     position = [0., 0.]

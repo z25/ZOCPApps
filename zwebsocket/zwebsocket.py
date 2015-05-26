@@ -19,10 +19,9 @@ class ZOCPclient(ZOCP):
         self.fromsockets = fromsockets
         self.nodename = nodename
         self.paramname = paramname
-        super().__init__()
+        super(ZOCPClient, self).__init__(self.nodename, *args, **kwargs)
 
     def run(self):
-        self.set_node_name(self.nodename)
         self.register_string(self.paramname, '', 'rw')
         super().run()
                 
