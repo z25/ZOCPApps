@@ -86,7 +86,7 @@ class GstZOCP(ZOCP):
         # create elements
         self._prerolled = False
         self.playbin = Gst.ElementFactory.make('playbin', 'playbin0')
-        #self.glcolorconv = Gst.ElementFactory.make("glcolorscale", "glcolorconv0")
+        self.glcolorconv = Gst.ElementFactory.make("glcolorscale", "glcolorconv0")
         self.glshader = Gst.ElementFactory.make("glshader", "glshader0")
         self.glimagesink = Gst.ElementFactory.make('glimagesink', "glimagesink0")
         self.sinkbin = Gst.Bin()
@@ -95,7 +95,7 @@ class GstZOCP(ZOCP):
         #videosrc.set_property("video-sink", glimagesink)
         #self.playbin.set_property("uri", pls.split(',')[self.count])
         #self.glimagesink.set_locked_state(True)
-        #self.sinkbin.add(self.glcolorconv)
+        self.sinkbin.add(self.glcolorconv)
         self.sinkbin.add(self.glshader)
         self.sinkbin.add(self.glimagesink)
         
@@ -107,7 +107,7 @@ class GstZOCP(ZOCP):
         self.glshader.link(self.glimagesink)
         self.glcolorconv.link(self.glshader)
         self.glshader.link(self.glimagesink)
-        ghostpad = Gst.GhostPad.new("sink", self.glshader.get_static_pad("sink"))
+        ghostpad = Gst.GhostPad.new("sink", self.glcolorconv.get_static_pad("sink"))
         self.sinkbin.add_pad(ghostpad)
 
         #self.playbin.connect("pad-added", self.on_pad_added, self.sinkbin)
