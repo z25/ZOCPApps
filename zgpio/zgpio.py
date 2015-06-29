@@ -24,7 +24,7 @@ class gpio(object):
         unexport_file.write(str(self.pin))
         unexport_file.close()
 
-    def set_pin_irection(self):
+    def set_pin_direction(self):
         direction_file = open("/sys/class/gpio/gpio" + str(self.pin) + "/direction", "w")
         direction_file.write(self.direction) #in or out
         direction_file.close()
